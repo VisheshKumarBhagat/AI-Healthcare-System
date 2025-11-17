@@ -124,10 +124,6 @@ drinks_category = row6_2.selectbox("How many alcoholic drinks do you consume in 
 binge_drinking_status = row6_2.selectbox("Have you engaged in binge drinking in the past 30 days?", ["yes", "no"], index=1, help="Binge drinking is consuming 5 or more drinks for men, or 4 or more drinks for women, in about 2 hours!")
 exercise_status = row6_3.selectbox("Have you exercised in the past 30 days?", ["yes", "no"], index=0)
 
-with row6_1:
-    st.write("#### Learn More")
-    st.markdown("[![](https://img.shields.io/badge/GitHub%20-Features%20Information-informational)](https://github.com/AbhaySingh71/AI-Powered-Healthcare-Intelligence-System/tree/main/heart_disease_risk_assessment)")
-
 # Collect input data
 input_data = {
     'gender': gender,
