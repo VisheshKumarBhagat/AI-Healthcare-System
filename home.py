@@ -178,22 +178,3 @@ st.markdown("""
     """ , unsafe_allow_html=True)
 
 st.markdown("---")
-
-# Contact Us (Left Aligned)
-st.markdown("""
-    <div class='contact'>
-        <h2>📬 Contact Us</h2>
-        <p>Have questions or need support? Reach out to us at:</p>
-        📧 <a href="mailto:abhaysingh71711@gmail.com">abhaysingh71711@gmail.com</a>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Profile Links (Centered)
-st.markdown("""
-    <div class='profile-links'>
-        <h2>🌐 Connect With Me</h2>
-        <a href="https://github.com/AbhaySingh71" target="_blank">GitHub</a> |
-        <a href="https://www.linkedin.com/in/abhay-singh-050a5b293/" target="_blank">LinkedIn</a> |
-        <a href="https://x.com/AbhaySingh71711" target="_blank">Twitter</a>
-    </div>
-    """, unsafe_allow_html=True)
