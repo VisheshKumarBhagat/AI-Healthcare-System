@@ -41,9 +41,9 @@ st.markdown("""
 # ==========================================
 # DIGITAL OCEAN AGENT API SETTINGS
 # ==========================================
-AGENT_URL = "https://geyrm4t7xmbv2kx2xp3obk2a.agents.do-ai.run"
-API_ENDPOINT = f"{AGENT_URL}/api/v1/chat/completions"
 API_KEY = st.secrets["API_KEY"]
+AGENT_URL = st.secrets["AGENT_URL"]
+API_ENDPOINT = f"{AGENT_URL}/api/v1/chat/completions"
 
 # ==========================================
 # SIDEBAR
