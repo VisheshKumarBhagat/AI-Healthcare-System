@@ -1,62 +1,129 @@
 # streamlit_app.py
 import streamlit as st
-import streamlit.components.v1 as components
+import requests
 
-st.set_page_config(page_title="Medibot (External Chatbot)", layout="wide")
+# ==========================================
+# CONFIGURATION & THEME
+# ==========================================
+st.set_page_config(page_title="Medibot", layout="wide")
 
-# Sidebar (keeps your existing content / branding)
-st.sidebar.markdown("<h2 style='color: #ffffff;'>📌 Description</h2>", unsafe_allow_html=True)
-st.sidebar.image("utils/ph2.png", use_container_width=True)
+# Injecting custom CSS to match your requested theme colors
+st.markdown("""
+<style>
+    /* Main App Background (Primary Color) */
+    .stApp {
+        background-color: #0d1b2a;
+    }
+    
+    /* Sidebar Background (Slightly darker for contrast) */
+    [data-testid="stSidebar"] {
+        background-color: #08111a;
+    }
+    
+    /* Base Text Color (Secondary Color) */
+    .stApp, p, h1, h2, h3, h4, h5, h6, li {
+        color: #e0e0e0 !important;
+    }
+    
+    /* Chat Input Focus Ring (Button/Accent Color) */
+    .stChatInputContainer:focus-within {
+        border-color: #0061EB !important;
+        box-shadow: 0 0 0 1px #0061EB !important;
+    }
+    
+    /* Hide the default top header bar */
+    [data-testid="stHeader"] {
+        background-color: transparent;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# DIGITAL OCEAN AGENT API SETTINGS
+# ==========================================
+AGENT_URL = "https://geyrm4t7xmbv2kx2xp3obk2a.agents.do-ai.run"
+API_ENDPOINT = f"{AGENT_URL}/api/v1/chat/completions"
+API_KEY = st.secrets["API_KEY"]
+
+# ==========================================
+# SIDEBAR
+# ==========================================
+st.sidebar.markdown("<h2>📌 Description</h2>", unsafe_allow_html=True)
+# st.sidebar.image("utils/ph2.png", use_container_width=True) # Uncomment if you have the image
 st.sidebar.markdown(
-    "<p class='sidebar-text'>The LLM Medical Chatbot is an AI-powered assistant designed to provide instant, accurate, and reliable healthcare insights.</p>",
+    "<p>The Medibot Assistant is an AI-powered clinical assistant designed to systematically gather your symptoms and provide a preliminary diagnostic assessment.</p>",
     unsafe_allow_html=True,
 )
 st.sidebar.markdown("""
 ### 🔍 About Medibot:
-- Uses an external chatbot widget
-- Fast integration — no local LLM required
-- Data will go to the external agent provider (see note below)
+- Fast, secure native chat interface
+- Powered by DigitalOcean AI
+- Strictly focused on medical triage
 """)
 
-# Option to toggle between external widget and your original code (useful for testing)
-use_external = st.sidebar.checkbox("Use external chatbot widget (recommended)", value=True)
-
-if use_external:
-    st.title("💬 Medibot — External Chatbot")
-    st.markdown("Ask medical-related questions — powered by the external agent widget.")
-
-    # The HTML/JS snippet you supplied. Place it inside a small HTML wrapper.
-    widget_html = f"""
-    <div id="do-ai-widget-root"></div>
-    <script async
-      src="https://wsi66hsa4eiamko53x74lvzk.agents.do-ai.run/static/chatbot/widget.js"
-      data-agent-id="73fa428f-78c3-11f0-b074-4e013e2ddde4"
-      data-chatbot-id="D3PM7drc5b_6KUHsyOCtsJNr_pvjKfe_"
-      data-name="Medibot"
-    #   data-primary-color="#e0e0e0"
-      data-primary-color="#0d1b2a"
-    #   data-secondary-color="#0d1b2a"
-      data-secondary-color="#e0e0e0"
-      data-button-background-color="#0061EB"
-      data-starting-message="Hello! How can I help you today?"
-      data-logo="/static/chatbot/icons/default-agent.svg">
-    </script>
-    """
-
-    # Embed the widget. Adjust height as needed.
-    components.html(widget_html, height=700, scrolling=True)
-
-    st.caption("If the widget fails to load, check that your host allows external scripts and that the `src` URL is reachable.")
-else:
-    st.title("💬 Medibot — Local (placeholder)")
-    st.info("You chose to run the local chatbot. Re-enable your original Streamlit + LLM code here.")
-    st.markdown(
-        "To restore your custom bot: paste your previous Streamlit logic (vectorstore, LLM loading, RetrievalQA call, etc.) in this branch."
-    )
-
-# ---- Important notes ----
-st.markdown("---")
-st.markdown(
-    "**Privacy & Security — READ:** The embedded widget loads and executes an external script from a third-party host. "
-    "User messages may be routed to that provider. Make sure this is acceptable for your use-case and complies with your org's data policy."
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "**Privacy & Security:** User messages are processed securely. Please do not share sensitive personally identifiable information (PII) beyond your medical symptoms."
 )
+
+# ==========================================
+# MAIN CHAT INTERFACE
+# ==========================================
+st.title("💬 Medibot — Diagnostic Assistant")
+
+# Initialize chat history with the required first message
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Please state your symptoms."}
+    ]
+
+# Render previous chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# React to user input
+if prompt := st.chat_input("E.g., I have a sharp headache that started 2 days ago..."):
+    
+    # 1. Display user's message
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # 2. Display assistant's response container with a loading state
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        message_placeholder.markdown("Analyzing symptoms...")
+        
+        # Format the conversation history for the OpenAI-compatible DO endpoint
+        # Exclude the very first hardcoded prompt if you only want to send user data, 
+        # or send the whole array to maintain context.
+        api_messages = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+        
+        headers = {
+            "Authorization": f"Bearer {API_KEY}", 
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "messages": api_messages
+        }
+        
+        try:
+            # Hit the DigitalOcean Agent API
+            response = requests.post(API_ENDPOINT, json=payload, headers=headers)
+            response.raise_for_status() # Raise an error for bad status codes
+            
+            # Parse the response (OpenAI chat completion format)
+            data = response.json()
+            bot_reply = data["choices"][0]["message"]["content"]
+            
+        except requests.exceptions.RequestException as e:
+            bot_reply = f"**Connection Error:** Could not reach the DigitalOcean Agent. Please check your API key or network connection. \n\n`{e}`"
+        except KeyError:
+            bot_reply = "**Data Error:** The agent returned an unexpected data format."
+
+        # Update the placeholder with the final response
+        message_placeholder.markdown(bot_reply)
+    
+    # 3. Save assistant message to history
+    st.session_state.messages.append({"role": "assistant", "content": bot_reply})

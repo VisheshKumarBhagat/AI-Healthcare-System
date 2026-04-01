@@ -2,7 +2,6 @@ import streamlit as st
 import pickle
 import pandas as pd
 import numpy as np
-from thefuzz import process
 import ast
 
 st.set_page_config(page_title="AI-Powered Healthcare Intelligence Network", page_icon="🩺", layout='wide')
@@ -10,8 +9,6 @@ st.set_page_config(page_title="AI-Powered Healthcare Intelligence Network", page
 st.sidebar.markdown("<h2 style='color: #ffffff;'>📌 Description</h2>", unsafe_allow_html=True)
 st.sidebar.image("utils/ph3.png", use_container_width=True)
 st.sidebar.markdown("<p class='sidebar-text'>The Disease Prediction & Medical Recommendation system uses AI to analyze symptoms, predict diseases, assess health risks, and suggest personalized treatments—enhancing early diagnosis and improving healthcare decisions for better patient outcomes.</p>", unsafe_allow_html=True)
-
-
 
 @st.cache_resource
 def load_data():
@@ -52,57 +49,63 @@ def predicted_value(patient_symptoms):
     try:
         i_vector = np.zeros(len(symptoms_list_processed))
         for symptom in patient_symptoms:
-            i_vector[symptoms_list_processed[symptom]] = 1
+            if symptom in symptoms_list_processed:
+                i_vector[symptoms_list_processed[symptom]] = 1
         return diseases_list.get(model.predict([i_vector])[0], "Unknown Disease")
     except Exception:
         return "Prediction Error"
-
-def correct_spelling(symptom):
-    closest_match, score = process.extractOne(symptom, symptoms_list_processed.keys())
-    return closest_match if score >= 80 else None
 
 st.title("🩺 Disease Prediction & Medical Recommendation")
 
 # Disease Prediction Section
 st.markdown("### Disease Prediction Based on Symptoms")
-st.markdown("_To get the best and most accurate results, provide as many symptoms as possible._")
-user_input = st.text_area("Enter symptoms (comma-separated):", placeholder="e.g., headache, constipation, nausea")
+st.markdown("_Select all the symptoms you are experiencing from the list below to get the most accurate results._")
+
+# Prepare symptoms options for the multiselect
+available_symptoms = list(symptoms_list_processed.keys())
+# Title case formatting for better readability in the frontend
+formatted_symptoms = [sym.title() for sym in available_symptoms]
+
+# Multiselect widget acts like a series of clickable tags/buttons
+selected_formatted_symptoms = st.multiselect(
+    "Select your symptoms:",
+    options=formatted_symptoms,
+    placeholder="Search or select symptoms..."
+)
 
 if st.button("Predict Disease"):
-    if user_input:
-        patient_symptoms = [s.strip() for s in user_input.split(',')]
-        patient_symptoms = [correct_spelling(symptom) for symptom in patient_symptoms if correct_spelling(symptom)]
-        if patient_symptoms:
-            predicted_disease = predicted_value(patient_symptoms)
-            dis_des, precautions, medications, rec_diet, workout = information(predicted_disease)
-            
-            st.success(f"**Predicted Disease:** {predicted_disease}")
-            st.write(f"**Description:** {dis_des}")
-            st.write("**Precautions:**", ', '.join(str(item) for item in precautions if item))
-            st.write("**Medications:**", ', '.join(str(item) for item in medications if item))
-            st.write("**Recommended Diet:**", ', '.join(str(item) for item in rec_diet if item))
-            st.write("**Recommended Workout:**", ', '.join(str(item) for item in workout if item))
-        else:
-            st.error("Invalid symptoms detected. Please check and try again.")
+    if selected_formatted_symptoms:
+        # Convert the formatted selections back to lowercase keys for prediction mapping
+        patient_symptoms = [sym.lower() for sym in selected_formatted_symptoms]
+        
+        predicted_disease = predicted_value(patient_symptoms)
+        dis_des, precautions_list, medications_list, rec_diet_list, workout_list = information(predicted_disease)
+        
+        st.success(f"**Predicted Disease:** {predicted_disease}")
+        st.write(f"**Description:** {dis_des}")
+        st.write("**Precautions:**", ', '.join(str(item) for item in precautions_list if item))
+        st.write("**Medications:**", ', '.join(str(item) for item in medications_list if item))
+        st.write("**Recommended Diet:**", ', '.join(str(item) for item in rec_diet_list if item))
+        st.write("**Recommended Workout:**", ', '.join(str(item) for item in workout_list if item))
     else:
-        st.warning("Please enter at least one symptom.")
+        st.warning("Please select at least one symptom.")
 
 st.markdown("---")
 
 # Disease Recommendations Section
-st.markdown("### Search for Disease Descrpition")
+st.markdown("### Search for Disease Description")
 disease_query = st.text_input("Type a disease name to get recommendations:", placeholder="Start typing...")
 
 if disease_query:
     matches = [d for d in disease_names if d.lower().startswith(disease_query.lower())]
     if matches:
         selected_disease = matches[0]
-        dis_des, precautions, medications, rec_diet, workout = information(selected_disease)
+        dis_des, precautions_list, medications_list, rec_diet_list, workout_list = information(selected_disease)
         st.subheader(f"Recommendations for {selected_disease}")
         st.write(f"**Description:** {dis_des}")
-        st.write("**Precautions:**", ', '.join(str(item) for item in precautions if item))
-        st.write("**Medications:**", ', '.join(str(item) for item in medications if item))
-        st.write("**Recommended Diet:**", ', '.join(str(item) for item in rec_diet if item))
-        st.write("**Recommended Workout:**", ', '.join(str(item) for item in workout if item))
+        st.write("**Precautions:**", ', '.join(str(item) for item in precautions_list if item))
+        st.write("**Medications:**", ', '.join(str(item) for item in medications_list if item))
+        st.write("**Recommended Diet:**", ', '.join(str(item) for item in rec_diet_list if item))
+        st.write("**Recommended Workout:**", ', '.join(str(item) for item in workout_list if item))
     else:
         st.warning("No matching disease found. Try a different name.")
